@@ -15,44 +15,47 @@ from nengo.network import Network
 from nengo import Node, Connection
 from nengo.neurons import LIFRate, Direct
 from nengo.synapses import Lowpass, SynapseParam
+from sspspace.sspspace.encoders import RandomSSPSpace
+from utility import Utility
 
 
-class DNF(object):
+# DNF 
+class DNF: 
     @staticmethod
-    def make_kernel(self, shape, exc, inh, exc_width=5, inh_width=10, epsilon=0.001):
-        assert len(shape) in [1,2]
+    def make_kernel(shape, exc, inh, exc_width=5, inh_width=10, epsilon=0.001):
+            assert len(shape) in [1,2]
+            
+            max_width = np.max(shape)
+            x = np.arange(0, max_width)
+            k_exc = np.exp(-0.5*((x)/exc_width)**2)
+            k_inh = np.exp(-0.5*((x)/inh_width)**2)
+            width = np.min([np.searchsorted(k_exc[::-1], epsilon), np.searchsorted(k_inh[::-1], epsilon)])
+            k_exc = k_exc[:-width]
+            k_inh = k_inh[:-width]
+            
+            if len(shape)==2:
+                xx, yy = np.meshgrid(np.arange(len(k_exc)), np.arange(len(k_exc)))
+                dist = xx**2 + yy**2
+                k_exc = np.exp(-0.5*(dist/exc_width**2))
+                k_inh = np.exp(-0.5*(dist/inh_width**2))            
+            
+            
+            k_exc = np.concatenate([k_exc[1:][::-1], k_exc])
+            k_inh = np.concatenate([k_inh[1:][::-1], k_inh])
+            
+            if len(shape)==2:
+                k_exc = np.hstack([k_exc[:,1:][:,::-1], k_exc])
+                k_inh = np.hstack([k_inh[:,1:][:,::-1], k_inh])
+            
+            k_exc = k_exc * exc / np.sum(k_exc)
+            k_inh = k_inh * inh / np.sum(k_inh)
         
-        max_width = np.max(shape)
-        x = np.arange(0, max_width)
-        k_exc = np.exp(-0.5*((x)/exc_width)**2)
-        k_inh = np.exp(-0.5*((x)/inh_width)**2)
-        width = np.min([np.searchsorted(k_exc[::-1], epsilon), np.searchsorted(k_inh[::-1], epsilon)])
-        k_exc = k_exc[:-width]
-        k_inh = k_inh[:-width]
-        
-        if len(shape)==2:
-            xx, yy = np.meshgrid(np.arange(len(k_exc)), np.arange(len(k_exc)))
-            dist = xx**2 + yy**2
-            k_exc = np.exp(-0.5*(dist/exc_width**2))
-            k_inh = np.exp(-0.5*(dist/inh_width**2))            
-        
-        
-        k_exc = np.concatenate([k_exc[1:][::-1], k_exc])
-        k_inh = np.concatenate([k_inh[1:][::-1], k_inh])
-        
-        if len(shape)==2:
-            k_exc = np.hstack([k_exc[:,1:][:,::-1], k_exc])
-            k_inh = np.hstack([k_inh[:,1:][:,::-1], k_inh])
-        
-        k_exc = k_exc * exc / np.sum(k_exc)
-        k_inh = k_inh * inh / np.sum(k_inh)
-    
-        k = k_exc - k_inh
-        
-        return k
-    
+            k = k_exc - k_inh
+            
+            return k
+
     @staticmethod
-    def make_dnf(self, shape, tau, c_noise, beta, global_inh, h, exc, inh, exc_w, inh_w, dt):
+    def make_dnf(shape, tau, c_noise, beta, global_inh, h, exc, inh, exc_w, inh_w, dt):
         net = nengo.Network()
         with net:
             N = np.prod(shape)
@@ -75,19 +78,19 @@ class DNF(object):
             nengo.Connection(net.u, net.g.neurons, synapse=tau, transform=tau/dt)
         
 
-            k = self.make_kernel(shape, exc, inh, exc_w, inh_w)
+            k = DNF.make_kernel(shape, exc, inh, exc_w, inh_w)
             conv = nengo.Convolution(n_filters=1, input_shape=(N, 1), kernel_size=k.shape, strides=[1], 
                                     padding='same', init=k[...,None,None])
             nengo.Connection(net.g.neurons, net.g.neurons, synapse=tau, transform=conv)
         return net
 
 
-
+# Basal Ganglia model
 class BasalGanglia(Network):
     """
     Basal ganglia model with a single 2D DNF that accepts an (N x ssp_dim) input.
     """
-    def __init__(self, n_actions, dnf_parameters,
+    def __init__(self, n_actions: int, dnf_parameters: dict,
                  encoders, d1_weight=1.0, d2_weight=1.0,
                  neuron_type=LIFRate(), seed=None, dnf_neurons = 400):
         super().__init__(seed=seed)
@@ -98,6 +101,7 @@ class BasalGanglia(Network):
         self.d2_weight = d2_weight
         self.total_dim = self.n_actions * self.ssp_dim
         self.dnf_neurons = dnf_neurons
+        self.dnf_parameters = dnf_parameters
 
         # Synapse constants
         self.gaba = None
@@ -124,10 +128,10 @@ class BasalGanglia(Network):
             
 
             # D1 DNF 
-            self.d1_dnf = DNF.make_dnf(**dnf_parameters)
+            self.d1_dnf = DNF.make_dnf(**self.dnf_parameters)
 
             # D2 DNF
-            self.d2_dnf = DNF.make_dnf(**dnf_parameters)
+            self.d2_dnf = DNF.make_dnf(**self.dnf_parameters)
 
             # -----Downstream: per-action STN, GPe, GPi -------------
             self.stn = []
@@ -192,3 +196,111 @@ class BasalGanglia(Network):
                 # GPi --> Output
                 Connection(self.gpi[i], self.bg_out[i * self.ssp_dim : (i + 1) * self.ssp_dim], transform=-3.0, synapse=None)
                 # print(i)
+
+    def simulate(self, input_bundles, dopamine_level = 0.0, presentation_time = 1.5, duration = 1.0):
+        '''
+        Run a simulatiokn of this Basal Ganglia network with the given inputs
+        '''
+
+        model = nengo.Network(label="BG Network")
+        with model:
+            model.add(self)
+            input_bundle_nodes = []
+            for i in range(self.n_actions):
+                cortical_bundle = nengo.Node(nengo.processes.PresentInput(inputs=[input_bundles[i]], presentation_time=presentation_time), label=f'ssp_cortical_bundle_node_{i}')
+                input_bundle_nodes.append(cortical_bundle)
+                
+            # Dopamine
+            dopamine_node = nengo.Node(nengo.processes.PresentInput(inputs = [dopamine_level], presentation_time=presentation_time), label='dopamine')
+
+            # Output Node
+            out_node = Node(size_in = self.ssp_dim * self.n_actions)
+
+            # Connections with BG model
+            # 1. Dopamine
+            nengo.Connection(dopamine_node, self.dopamine, synapse=None)
+            # 2. Connect bundles
+            for i in range(self.n_actions):
+                nengo.Connection(input_bundle_nodes[i], self.cortex_inputs[i], synapse=None)
+            # 3. Output node
+            nengo.Connection(self.bg_out, out_node, synapse=None)
+
+            # Probes 
+            p_ins = []
+            for i in range(self.n_actions):
+                p_in = nengo.Probe(input_bundle_nodes[i], synapse=None)
+                p_ins.append(p_in)
+            
+            p_dnf_in_d1 = nengo.Probe(self.d1_dnf.g.neurons, 'input', synapse = None)
+            p_dnf_neurons_d1= nengo.Probe(self.d1_dnf.g.neurons, synapse=None)
+
+            p_dnf_in_d2 = nengo.Probe(self.d2_dnf.g.neurons, 'input', synapse = None)
+            p_dnf_neurons_d2= nengo.Probe(self.d2_dnf.g.neurons, synapse=None)
+
+            p_out = nengo.Probe(out_node, synapse = None)
+
+        # Run the network
+        with nengo.Simulator(model) as sim:
+            sim.run(duration)
+        
+        return {
+            'bundle_ins': [sim.data[p] for p in p_ins],
+            'd1_input': sim.data[p_dnf_in_d1],
+            'd1_neuron': sim.data[p_dnf_neurons_d1],
+            'd2_input': sim.data[p_dnf_in_d2],
+            'd2_neuron': sim.data[p_dnf_neurons_d2],
+            'bundle_out': sim.data[p_out]
+        }
+
+# main
+def main():
+    # Domain 
+    domain = np.arange(0, 4, 0.01).reshape(-1, 1) # Shape: (400, 1)
+    # SSP encoder
+    ssp_encoder = RandomSSPSpace(
+        domain_dim = 1, # scalar action values
+        ssp_dim = 512, # high dimensional SSPs
+        rng=np.random.RandomState(), 
+        length_scale=0.5
+    )
+    # Convert scalar action values into high dimensional SSPs
+    domain_phis = ssp_encoder.encode(domain) # Shape: (400, 512)
+
+    # Place cell encoders for Nengo ensembles
+    low = 0
+    high = 4
+    width = high - low
+    places_ = np.arange(low, high, width/(domain.shape[0]))
+    encoders = np.asarray(ssp_encoder.encode(places_.reshape(-1, 1))).squeeze()
+
+    # Make a single channel basal ganglia
+    n_actions = 1
+    a = np.random.uniform(low=1, high=10, size=n_actions)
+    b = np.random.uniform(low=1, high=10, size=n_actions)
+    salience = np.random.uniform(low = 0, high = 1, size = n_actions)
+    beta_distribution = beta.pdf(domain, a, b, scale=domain[-1])
+
+    # Create bundle 
+    bundle = Utility.to_bundle(Utility.to_scale([salience], Utility.to_normalize(beta_distribution)), domain_phis)
+    print("bundle:", bundle.shape)
+
+    # DNF params
+    dnf_params = {'h'       : -3.009416816439706,
+            'global_inh'      : 8.641108231311897,
+            'tau'             : 0.04706404390267922,
+            'exc'             : 9.421285790349613,
+            'inh'             : 1.4841093480380807,
+            'exc_w'           : 8.534993467227224,
+            'inh_w'           : 4.748154014869723,
+            'dt'              : 0.001, 
+            'c_noise'         : 1.0,
+            'shape'           : [(n_actions, 400)], 
+            'beta'            : 4,
+    }
+
+    bg_model = BasalGanglia(n_actions=n_actions, dnf_parameters=dnf_params, encoders=encoders)
+    data = bg_model.simulate(input_bundles=[bundle], dopamine_level=0.2, presentation_time=1.5, duration=1.5)
+    print(data)
+
+if __name__ == 'main':
+    main()
