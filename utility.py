@@ -41,3 +41,34 @@ class Utility:
         '''
         normalized = distributions / np.max(distributions, axis=1, keepdims=True)
         return normalized
+    
+
+class ActionIterator:
+    def __init__(self, n_actions, normalized_vectors, domain_phis):
+        self.n_actions = n_actions
+        self.actions = np.ones(n_actions) * 0.1      # initial saliences
+        self.vectors = normalized_vectors            # list of 512-dim SSPs
+        self.domain_phis = domain_phis               # shape (N,512) for bundling
+
+    def step(self, t):
+        # rotate which action is "on"
+        idx = int(t % self.n_actions)
+        self.actions[:] = 0.5
+        self.actions[idx] = 0.9
+
+        # print(self.actions, idx)
+
+        # print(f'At time t={t}, salience: {self.actions}, winning channel: {np.argmax(self.actions)}')
+
+        # scale each SSP by its salience
+        scaled = [self.actions[i] * self.vectors[i]
+                  for i in range(self.n_actions)]
+
+        # bundle each scaled SSP back into a 512-d vector via einsum
+        bundles = [
+            np.einsum('n,nd->d', scaled[i].squeeze(), self.domain_phis)
+            for i in range(self.n_actions)
+        ]
+
+        # stack and flatten to one long vector
+        return np.concatenate(bundles)              # shape (n_actions * 512,)
