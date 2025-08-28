@@ -42,6 +42,21 @@ class Utility:
         normalized = distributions / np.max(distributions, axis=1, keepdims=True)
         return normalized
     
+    @staticmethod
+    def to_bimodal(distributions):
+        '''
+        Creates bimodal beta distributions.
+        To create N beta distributions, the length of distributions should be 2N. 
+        Bimodal distributions are created by combining consequetive pairs of beta distributions
+        biomodal = distributions[0] + distribution[1]
+        '''
+        assert len(distributions) % 2 == 0, "The list `distributions` should have an even length."
+        biomodals = []
+        for _, index in enumerate(list(range(0, len(distributions), 2))):
+            biomodal = distributions[index] + distributions[index + 1]
+            biomodals.append(biomodal)
+        return biomodals
+    
 
 class ActionIterator:
     def __init__(self, n_actions, normalized_vectors, domain_phis):
