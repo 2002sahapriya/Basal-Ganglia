@@ -19,43 +19,101 @@ from sspspace.sspspace.encoders import RandomSSPSpace
 from utility import Utility
 
 
-# DNF 
 class DNF: 
+    """
+    Dynamic Neural Field (DNF) helper class.
+
+    Provides methods to construct neural field kernels and corresponding Nengo
+    networks for simulating localized excitatory and inhibitory dynamics.
+    """
     @staticmethod
     def make_kernel(shape, exc, inh, exc_width=5, inh_width=10, epsilon=0.001):
-            assert len(shape) in [1,2]
-            
-            max_width = np.max(shape)
-            x = np.arange(0, max_width)
-            k_exc = np.exp(-0.5*((x)/exc_width)**2)
-            k_inh = np.exp(-0.5*((x)/inh_width)**2)
-            width = np.min([np.searchsorted(k_exc[::-1], epsilon), np.searchsorted(k_inh[::-1], epsilon)])
-            k_exc = k_exc[:-width]
-            k_inh = k_inh[:-width]
-            
-            if len(shape)==2:
-                xx, yy = np.meshgrid(np.arange(len(k_exc)), np.arange(len(k_exc)))
-                dist = xx**2 + yy**2
-                k_exc = np.exp(-0.5*(dist/exc_width**2))
-                k_inh = np.exp(-0.5*(dist/inh_width**2))            
-            
-            
-            k_exc = np.concatenate([k_exc[1:][::-1], k_exc])
-            k_inh = np.concatenate([k_inh[1:][::-1], k_inh])
-            
-            if len(shape)==2:
-                k_exc = np.hstack([k_exc[:,1:][:,::-1], k_exc])
-                k_inh = np.hstack([k_inh[:,1:][:,::-1], k_inh])
-            
-            k_exc = k_exc * exc / np.sum(k_exc)
-            k_inh = k_inh * inh / np.sum(k_inh)
+        """
+        Construct a 1D or 2D lateral interaction kernel for a dynamic neural field.
+        Parameters
+        ----------
+            shape : tuple or list
+                Shape of the DNF (1D or 2D). Determines whether a line or grid kernel is built.
+            exc : float
+                Total excitatory scaling factor.
+            inh : float
+                Total inhibitory scaling factor.
+            exc_width : float, optional (default=5)
+                Spread (σ) of the Gaussian excitation profile.
+            inh_width : float, optional (default=10)
+                Spread (σ) of the Gaussian inhibition profile.
+            epsilon : float, optional (default=0.001)
+                Cutoff threshold for kernel tails.
+        Returns
+        -------
+            k : ndarray
+                Final excitatory-inhibitory difference kernel for the given shape.
+        """
+        assert len(shape) in [1,2]
         
-            k = k_exc - k_inh
-            
-            return k
+        max_width = np.max(shape)
+        x = np.arange(0, max_width)
+        k_exc = np.exp(-0.5*((x)/exc_width)**2)
+        k_inh = np.exp(-0.5*((x)/inh_width)**2)
+        width = np.min([np.searchsorted(k_exc[::-1], epsilon), np.searchsorted(k_inh[::-1], epsilon)])
+        k_exc = k_exc[:-width]
+        k_inh = k_inh[:-width]
+        
+        if len(shape)==2:
+            xx, yy = np.meshgrid(np.arange(len(k_exc)), np.arange(len(k_exc)))
+            dist = xx**2 + yy**2
+            k_exc = np.exp(-0.5*(dist/exc_width**2))
+            k_inh = np.exp(-0.5*(dist/inh_width**2))            
+        
+        
+        k_exc = np.concatenate([k_exc[1:][::-1], k_exc])
+        k_inh = np.concatenate([k_inh[1:][::-1], k_inh])
+        
+        if len(shape)==2:
+            k_exc = np.hstack([k_exc[:,1:][:,::-1], k_exc])
+            k_inh = np.hstack([k_inh[:,1:][:,::-1], k_inh])
+        
+        k_exc = k_exc * exc / np.sum(k_exc)
+        k_inh = k_inh * inh / np.sum(k_inh)
+    
+        k = k_exc - k_inh
+        
+        return k
 
     @staticmethod
     def make_dnf(shape, tau, c_noise, beta, global_inh, h, exc, inh, exc_w, inh_w, dt):
+        """
+        Build a Nengo network implementing a Dynamic Neural Field (DNF).
+        Parameters
+        ----------
+            shape : tuple
+                Dimensions of the neural field (e.g., (100,) for 1D or (32, 32) for 2D).
+            tau : float
+                Synaptic time constant for recurrent dynamics.
+            c_noise : float
+                Amplitude of background noise.
+            beta : float
+                Gain parameter for neural activation.
+            global_inh : float
+                Global inhibitory weight.
+            h : float
+                Resting potential / bias term.
+            exc : float
+                Excitatory scaling factor.
+            inh : float
+                Inhibitory scaling factor.
+            exc_w : float
+                Excitatory kernel width.
+            inh_w : float
+                Inhibitory kernel width.
+            dt : float
+                Simulation time step.
+        Returns
+        -------
+            net : nengo.Network
+                A Nengo network implementing the specified DNF with recurrent dynamics,
+                lateral interactions, and global inhibition.
+        """
         net = nengo.Network()
         with net:
             N = np.prod(shape)
@@ -88,8 +146,53 @@ class DNF:
 # Basal Ganglia model
 class BasalGanglia(Network):
     """
-    Basal ganglia model with a single 2D DNF that accepts an (N x ssp_dim) input.
+    Biologically inspired Basal Ganglia (BG) model implemented as a Nengo network.
+
+    This model integrates cortical input SSPs, dopaminergic modulation, and
+    dynamic neural fields (DNFs) to simulate action selection and specification.
+
+    Features
+    --------
+    - Accepts multiple actions (n_actions), each represented as a high-dimensional SSP (512D).
+    - Uses D1 and D2 striatal DNFs for parallel processing of action salience.
+    - Includes subcortical structures (STN, GPe, GPi) for BG loops.
+    - Supports dopaminergic input for reinforcement learning tasks.
+
+    Parameters
+    ----------
+        n_actions : int
+            Number of discrete action channels (each with its own SSP input).
+        dnf_parameters : dict
+            Dictionary of parameters for constructing the DNF networks
+            (passed to `DNF.make_dnf`).
+        encoders : np.ndarray or list
+            Encoders for representing cortical input SSPs.
+        d1_weight : float, optional (default=1.0)
+            Scaling factor for D1 striatal pathway.
+        d2_weight : float, optional (default=1.0)
+            Scaling factor for D2 striatal pathway.
+        neuron_type : nengo.NeuronType, optional (default=LIFRate())
+            Neuron model for Nengo ensembles.
+        seed : int, optional
+            Random seed for reproducibility.
+        dnf_neurons : int, optional (default=400)
+            Number of neurons per DNF ensemble.
+
+    Attributes
+    ----------
+        cortex_inputs : list[Node]
+            List of cortical input nodes, one per action channel.
+        dopamine : Node
+            Node representing dopaminergic modulation.
+        concentration_layer : Ensemble
+            Layer aggregating action representations before striatal DNFs.
+        d1_dnf, d2_dnf : nengo.Network
+            Dynamic neural fields for D1 and D2 pathways.
+        stn, gpe, gpi : list[Ensemble]
+            Subthalamic nucleus (STN), external globus pallidus (GPe),
+            and internal globus pallidus (GPi) ensembles per action channel.
     """
+
     def __init__(self, n_actions: int, dnf_parameters: dict,
                  encoders, d1_weight=1.0, d2_weight=1.0,
                  neuron_type=LIFRate(), seed=None, dnf_neurons = 400):
@@ -199,7 +302,29 @@ class BasalGanglia(Network):
 
     def simulate(self, input_bundles, dopamine_level = 0.0, presentation_time = 1.5, duration = 1.0):
         '''
-        Run a simulatiokn of this Basal Ganglia network with the given inputs
+        Run a simulatiokn of this Basal Ganglia network with the given inputs. 
+
+        Parameters
+        ----------
+            input_bundles : List
+                List of input bundles for N discrete actions, each is 512D SSP vector
+            dopamine_level : dict
+                Amount of dopamine to present to the Basal Ganglia model
+            presentation_time : np.ndarray or list
+                Length of time to present the input bundles and dopamine to the model
+            duration : float, optional (default=1.0)
+                Length of the simulation
+
+        Returns
+        -------
+            dict: 
+                Dictionary containing the network's probes data
+                    • bundle_ins: Probes for inputs to Basal Ganglia model
+                    • d1_input: Probes D1 Straitum Input
+                    • d1_neuron: Probes for D1 Straitum Ensemble neurons
+                    • d2_input: Probes for D2 Straitum Input
+                    • d2_input: Probes for D2 Straitum Ensemble neurons
+                    • bundle_out: Probes for output bundles from Basal Ganglia model
         '''
 
         model = nengo.Network(label="BG Network")
@@ -252,7 +377,6 @@ class BasalGanglia(Network):
             'bundle_out': sim.data[p_out]
         }
 
-# main
 def main():
     # Domain 
     domain = np.arange(0, 4, 0.01).reshape(-1, 1) # Shape: (400, 1)
@@ -297,9 +421,11 @@ def main():
             'shape'           : [(n_actions, 400)], 
             'beta'            : 4,
     }
-
+    # Create the Basal Ganglia model 
     bg_model = BasalGanglia(n_actions=n_actions, dnf_parameters=dnf_params, encoders=encoders)
+    # Simulate the model 
     data = bg_model.simulate(input_bundles=[bundle], dopamine_level=0.2, presentation_time=1.5, duration=1.5)
+    # Display the probes data
     print(data)
 
 if __name__ == 'main':

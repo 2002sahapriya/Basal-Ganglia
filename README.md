@@ -9,7 +9,7 @@
 - gymnasium==1.0.0
 - matplotlib==3.10.5
 - nengo==4.1.0
-- numpy==2.3.2
+- numpy==1.26.4
 - scipy==1.16.1
 - setuptools==80.9.0
 - nengo_dl == 3.6.0
@@ -44,5 +44,9 @@
 - Run: `pip install -r requirements.txt`
 
 ## Model 
+Architecture of the Basal Ganglia model 
+[TBD]
 
 ## Citation
+
+> Note: Find function level and class level documentation in `documentation.md`
