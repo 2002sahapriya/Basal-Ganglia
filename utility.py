@@ -52,9 +52,8 @@ class Utility:
         '''
         assert len(distributions) % 2 == 0, "The list `distributions` should have an even length."
         biomodals = []
-        for _, index in enumerate(list(range(0, len(distributions), 2))):
-            biomodal = distributions[index] + distributions[index + 1]
-            biomodals.append(biomodal)
+        for index in range(0, len(distributions), 2):
+            biomodals.append(distributions[index] + distributions[index + 1])
         return biomodals
     
 
