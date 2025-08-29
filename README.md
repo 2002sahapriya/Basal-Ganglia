@@ -12,7 +12,6 @@
 - numpy==1.26.4
 - scipy==1.16.1
 - setuptools==80.9.0
-- nengo_dl == 3.6.0
 - nengo_dft == 0.0.1 (from https://github.com/tcstewar/nengo-dft/tree/main)
 - sspspace == 0.1 (from https://github.com/ctn-waterloo/sspspace)
 
@@ -50,3 +49,6 @@ Architecture of the Basal Ganglia model
 ## Citation
 
 > Note: Find function level and class level documentation in `documentation.md`
+
+## LICENSE
+- GNU

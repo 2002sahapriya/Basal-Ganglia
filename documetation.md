@@ -25,7 +25,22 @@ The DNF class provides:
 
 ####  `BasalGanglia(Network)`
 The `BasalGanglia` class implements a spiking neural model of the Basal Ganglia using Nengo.
-
+- You can add custom probes to your Basal Ganglia model by using `add_probe(...)` method. Make sure you call this method before you call `simulate()`
+- Example Usage: 
+  ```python
+    # create BG model 
+    bg = BasalGanglia(n_actions = 2, dnf_parameters = dnf_params, encoders = bg_encoders)
+    # 1) GPi decoded output for channel 0
+    bg.add_probe('gpi', index=0, what='output', name='gpi0_out')
+    # 2) All GPe neuron input currents (one key per channel)
+    bg.add_probe('gpe', index=None, what='neurons', field='input', name='gpe_all_input')
+    # 3) STN neuron activity (spikes) for channel 1 (use if neuron_type is LIF)
+    bg.add_probe('stn', index=1, what='neurons', field='spikes', name='stn1_spikes')
+    # 4) STN neuron rates for channel 2 (works with LIFRate)
+    bg.add_probe('stn', index=2, what='neurons', field=None, name='stn2_rates')
+    # simulate 
+    bg.simulate()
+  ```
 ## Notebooks:
 1. `bg_model.ipynb`: Contains Basal Ganglia model simulation for 4 discrete action channels and continous domain space expressed over [0,4]
 2. `modified_park.ipynb`: Contains implementation of a modified version of the Park task using an Action Iterator 

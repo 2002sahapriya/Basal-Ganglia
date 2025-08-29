@@ -73,6 +73,8 @@ class ActionIterator:
     
     The class scales SSPs by action salience and bundles them into continuous representations 
     for downstream processing (e.g., input to a basal ganglia model).
+
+    This has been copied and modified TODO
     '''
     def __init__(self, n_actions, normalized_vectors, domain_phis):
         '''

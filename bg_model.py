@@ -1,4 +1,5 @@
 #### BASAL GANGLIA MODEL ####
+### WHERE WE NICKED STUFF
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,8 @@ class DNF:
 
     Provides methods to construct neural field kernels and corresponding Nengo
     networks for simulating localized excitatory and inhibitory dynamics.
+
+    References/Citations: TODO
     """
     @staticmethod
     def make_kernel(shape, exc, inh, exc_width=5, inh_width=10, epsilon=0.001):
@@ -205,6 +208,8 @@ class BasalGanglia(Network):
         self.total_dim = self.n_actions * self.ssp_dim
         self.dnf_neurons = dnf_neurons
         self.dnf_parameters = dnf_parameters
+        # Storage for deferred probe requests
+        self._probe_requests = [] # list of dicts describing requested probes
 
         # Synapse constants
         self.gaba = None
@@ -290,15 +295,154 @@ class BasalGanglia(Network):
                 Connection(self.stn[i], self.gpe[i], transform=1.0, synapse=self.ampa)
                 # GPe --> STN 
                 Connection(self.gpe[i], self.stn[i], transform=-1.0, synapse=self.gaba)
-                # D1 --> GPi
+                # D1 --> GPi: connecting the domain.shape[0] neurons activities for each action channel as input to the GPi ensemble
                 Connection(self.d1_dnf.g.neurons[i * self.dnf_neurons: (i+1) * self.dnf_neurons], self.gpi[i], transform=-1.0 * self.encoders.T, synapse=self.gaba)
-                # D2 --> GPe
+                # D2 --> GPe: connecting the domain.shape[0] neurons activities for each action channel as input to the GPi ensemble
                 Connection(self.d2_dnf.g.neurons[i * self.dnf_neurons: (i+1) * self.dnf_neurons], self.gpe[i], transform=-1.0 * self.encoders.T, synapse=self.gaba)
                 # GPe --> GPi
                 Connection(self.gpe[i], self.gpi[i], transform=-1.0, synapse = self.gaba)
                 # GPi --> Output
                 Connection(self.gpi[i], self.bg_out[i * self.ssp_dim : (i + 1) * self.ssp_dim], transform=-3.0, synapse=None)
                 # print(i)
+
+    def add_probe(self, part: str, index: int|None = None, what: str = "output", field: str | None = None, name: str | None = None):
+        """
+        Queue a probe to be created when simulate() is called, 
+
+        Parameters
+        ----------
+        part: str
+            What to probe. Accepted (case-insensitive) values:
+            - Per-action lists: 'cortex_inputs', 'stn', 'gpe', 'gpi'
+            - Whole objects: 'concentration_layer', 'dopamine', 'bg_out'
+            - DNFs (neurons): 'd1_dnf', 'd2_dnf' (supports neuron fields)
+        index: int | None, optional 
+            For per-action lists, choose which channel (0 .... n_actions -1)
+            If None, all channels will be probed (one probe per channel)
+            Ignored for whole objects and DNFs unless you want per-action DNF slice. 
+        what: {'input', 'output', 'neurons'}, optional
+            'input' probes what is being encoded into Ensemble/None
+            'output' probes decoded output of an Ensemble/Node
+            'neurons' probes the underlying neuron signals of the Ensemble. 
+            For DNFs you likely want 'neurons'
+        field: {'input', 'spikes', 'voltage'}| None, optional
+            Only used when what='neurons'. Selects the neuron signal to probe. 
+            - None -> default (firing rates for LIFRate, spikes for LIF)
+            - 'input' -> input current to neurons
+            - 'spikes' -> spiking trains (for spiking neuron types)
+            - 'voltage' -> membrane voltage (where supported)
+        name: str | None, optional
+            Optional key name for returned data. If ommitted, 
+            a sensibl e default is generated, eg, 'gpi_0_output' 
+
+        Notes:
+        ------
+        • This does not create the Nengo.Probe immediately. It records an instruction that 
+          simulate() will realize inside the built model.
+        • For DNFs, you can target a per-action slice of neurons by providing index; 
+          the slice is [index * dnf_neurons: (index + 1) * dnf_neurons]
+        """
+        key = part.strip().lower()
+        valid = {
+            "cortex_inputs", "stn", "gpe", "gpi",
+            "concentration_layer", "dopamine", "bg_out",
+            "d1_dnf", "d2_dnf"
+        }
+        # Error checking 
+        if key not in valid:
+            raise ValueError(f"Unknown part '{part}'. Must be one of {sorted(valid)}")
+        
+        if what not in {"input", "output", "neurons"}:
+            raise ValueError(f"what must be 'input', 'output', or 'neurons'")
+        
+        if what == 'neurons' and field not in {None, 'input', 'spikes', 'voltage'}:
+            raise ValueError("field must be None, 'input', 'spikes', 'voltage' when what='neurons'.")
+        
+        # Default name if not provided 
+        if name is None:
+            if key is {'stn', 'gpe', 'gpi', 'cortex_inputs', 'd1_dnf', 'd2_dnf'} and index is not None:
+                base = f"{key}_{index}"
+            else:
+                base = key
+            suffix = field if (what == 'neurons' and field is not None) else what
+            name = f'{base}_{suffix}'
+        
+        # Record the request
+        self._probe_requests.append({
+            "part": key,
+            "index": index,
+            "what": what,
+            "field": field,
+            "name": name
+        })
+        
+        return name
+    
+    def  __add_custom_probes(self):
+        custom_probes = {}
+        # Helper function to create neuron-level probes with field selection 
+        def _probe_neurons(ens, field):
+            if field is None:
+                # for what = 'neurons'
+                return nengo.Probe(ens.neurons, synapse=None)
+            else:
+                # for what = 'input'
+                return nengo.Probe(ens.neurons, field, synapse=None)
+        
+        for req in getattr(self, "_probe_requests", []):
+            part = req["part"]
+            idx = req["index"]
+            what = req["what"]
+            fld = req["field"]
+            name = req["name"]
+
+            # Map 'part' to objects in the built network
+            if part == 'cortex_inputs':
+                targets = self.cortex_inputs if idx is None else [self.cortex_inputs[idx]]
+                for k, obj in enumerate(targets):
+                    nm = name if idx is not None else f"{name.rstrip('_output')}_{k}_{what}"
+                    if what == "output":
+                        custom_probes[nm] = nengo.Probe(obj, synapse=None)
+                    else:
+                        raise ValueError("cortex_inputs supports 'output' only")
+            elif part in {'stn', 'gpe', 'gpi'}:
+                lst = getattr(self, part)
+                targets = lst if idx is None else [lst[idx]]
+                for k, ens in enumerate(targets):
+                    nm = name if idx is not None else f"{name.rstrip('_output')}_{k}_{what if fld is None else fld}"
+                    if what == "output":
+                        custom_probes[nm] = nengo.Probe(ens, synapse=None)
+                    else:
+                        custom_probes[nm] = _probe_neurons(ens, fld)
+            elif part in {'d1_dnf', 'd2_dnf'}:
+                dnf = getattr(self, part)
+                # DNFs: typically probe neuron arrays on internal ensemble 'g'
+                if what == 'output':
+                    # Probe decoded output of DNF's main ensemble
+                    custom_probes[name] = nengo.Probe(dnf.g, synapse=None)
+                else: 
+                    # Optionally slice per action 
+                    if idx is None:
+                        custom_probes[name] = _probe_neurons(dnf.g, fld)
+                    else:
+                        start = idx * self.dnf_neurons
+                        stop = (idx + 1) * self.dnf_neurons
+                        custom_probes[name] = nengo.Probe(dnf.g.neurons[start:stop], fld if fld else None, synapse=None)
+            elif part in {'concentration_layer', 'dopamine', 'bg_out'}:
+                obj = getattr(self, part)
+                if what == 'output':
+                    custom_probes[name] = nengo.Probe(obj, synapse=None)
+                else:
+                    if part == 'concentration_layer':
+                        custom_probes[name] = _probe_neurons(obj, fld)
+                    else:
+                        raise ValueError(f"{part} does not support neuron-level probing.")
+            else:
+                raise RuntimeError(f"Unhandled probe part: {part}")
+            
+        return custom_probes
+        
+
 
     def simulate(self, input_bundles, dopamine_level = 0.0, presentation_time = 1.5, duration = 1.0):
         '''
@@ -350,7 +494,10 @@ class BasalGanglia(Network):
             # 3. Output node
             nengo.Connection(self.bg_out, out_node, synapse=None)
 
-            # Probes 
+            # ------------- Custom probes requested via add_probe() ----------# 
+            custom_probes = self.__add_custom_probes()
+            
+            # Default Probes 
             p_ins = []
             for i in range(self.n_actions):
                 p_in = nengo.Probe(input_bundle_nodes[i], synapse=None)
@@ -367,6 +514,9 @@ class BasalGanglia(Network):
         # Run the network
         with nengo.Simulator(model) as sim:
             sim.run(duration)
+
+        # Add custom data for probes
+        custom_data = {nm: sim.data[p] for nm, p in custom_probes.items()}
         
         return {
             'bundle_ins': [sim.data[p] for p in p_ins],
@@ -374,7 +524,8 @@ class BasalGanglia(Network):
             'd1_neuron': sim.data[p_dnf_neurons_d1],
             'd2_input': sim.data[p_dnf_in_d2],
             'd2_neuron': sim.data[p_dnf_neurons_d2],
-            'bundle_out': sim.data[p_out]
+            'bundle_out': sim.data[p_out],
+            'custom_probes': custom_data # < -- requested custom probes live here 
         }
 
 def main():
