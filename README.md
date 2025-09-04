@@ -44,7 +44,7 @@
 
 ## Model 
 Architecture of the Basal Ganglia model 
-[TBD]
+![BG Network](figures/bg_network.png "Figure 1: Basal Ganglia Network Architecture")
 
 ## Citation
 
