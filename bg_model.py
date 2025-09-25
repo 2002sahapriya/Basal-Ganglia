@@ -18,6 +18,7 @@ from nengo.neurons import LIFRate, Direct
 from nengo.synapses import Lowpass, SynapseParam
 from sspspace.sspspace.encoders import RandomSSPSpace
 from utility import Utility
+from nengo.processes import WhiteSignal
 
 
 class DNF: 
@@ -442,8 +443,6 @@ class BasalGanglia(Network):
             
         return custom_probes
         
-
-
     def simulate(self, input_bundles, dopamine_level = 0.0, presentation_time = 1.5, duration = 1.0):
         '''
         Run a simulatiokn of this Basal Ganglia network with the given inputs. 
@@ -527,6 +526,102 @@ class BasalGanglia(Network):
             'bundle_out': sim.data[p_out],
             'custom_probes': custom_data # < -- requested custom probes live here 
         }
+    
+    def simulate_noise(self, duration=1.5, high=10.0, rms=1.0, seed=0):
+        '''
+        Run the BG network with signal-free background: band-limited white noise drives the 
+        cortical inputs; dopamine is clamped to baseline (0).
+
+        Parameters
+        ----------
+            high: int
+                Hz cutoff for band-limited noise 
+            rms: int
+                Overall noise scale (tune relative to SSP magnitude)
+            presentation_time : np.ndarray or list
+                Length of time to present the input bundles and dopamine to the model
+            duration : float, optional (default=1.0)
+                Length of the simulation
+
+        Returns
+        -------
+            dict: 
+                Dictionary containing the network's probes data
+                    • bundle_ins: Probes for inputs to Basal Ganglia model
+                    • d1_input: Probes D1 Straitum Input
+                    • d1_neuron: Probes for D1 Straitum Ensemble neurons
+                    • d2_input: Probes for D2 Straitum Input
+                    • d2_input: Probes for D2 Straitum Ensemble neurons
+                    • bundle_out: Probes for output bundles from Basal Ganglia model
+        '''
+        model = nengo.Network(label="BG Noise Background")
+
+        with model:
+            model.add(self)
+
+            # 1) Noise nodes for each action channel, matching SSP dimensionality
+            noise_nodes = []
+            for i in range(self.n_actions):
+                noise = WhiteSignal(period=duration, high=high, rms=rms, seed = seed + i)
+                noise_node = nengo.Node(noise, size_out=self.ssp_dim, label=f'noise_in_{i}')
+                noise_nodes.append(noise_node)
+            
+            # 2). Baseline dopamine (signal-free)
+            dopamine_node = nengo.Node(output=0.0, size_out=1, label='dopamine_0')
+
+            # 3). Dummy output collector 
+            out_node = Node(size_in=self.ssp_dim * self.n_actions)
+
+            # Connections
+            # Dopamine
+            nengo.Connection(dopamine_node, self.dopamine, synapse=None)
+            # Noise noodes
+            for i in range(self.n_actions):
+                nengo.Connection(noise_nodes[i], self.cortex_inputs[i], synapse=None)
+            # Output nodes
+            nengo.Connection(self.bg_out, out_node, synapse=None)
+
+            # ------------- Custom probes requested via add_probe() ----------# 
+            custom_probes = self.__add_custom_probes()
+
+            # Default Probes 
+            p_ins = []
+            for i in range(self.n_actions):
+                p_in = nengo.Probe(noise_nodes[i], synapse=None)
+                p_ins.append(p_in)
+            
+            p_dnf_in_d1 = nengo.Probe(self.d1_dnf.g.neurons, 'input', synapse = None)
+            p_dnf_neurons_d1= nengo.Probe(self.d1_dnf.g.neurons, synapse=None)
+
+            p_dnf_in_d2 = nengo.Probe(self.d2_dnf.g.neurons, 'input', synapse = None)
+            p_dnf_neurons_d2= nengo.Probe(self.d2_dnf.g.neurons, synapse=None)
+
+            p_out = nengo.Probe(out_node, synapse = None)
+
+        # Run the network
+        with nengo.Simulator(model) as sim:
+            sim.run(duration)
+
+        # Add custom data for probes
+        custom_data = {nm: sim.data[p] for nm, p in custom_probes.items()}
+        
+        return {
+            'bundle_ins': [sim.data[p] for p in p_ins],
+            'd1_input': sim.data[p_dnf_in_d1],
+            'd1_neuron': sim.data[p_dnf_neurons_d1],
+            'd2_input': sim.data[p_dnf_in_d2],
+            'd2_neuron': sim.data[p_dnf_neurons_d2],
+            'bundle_out': sim.data[p_out],
+            'custom_probes': custom_data # < -- requested custom probes live here 
+        }
+
+
+
+
+
+
+
+
 
 def main():
     # Domain 
