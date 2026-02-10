@@ -12,11 +12,13 @@ bundles = Utility.to_bundle(distributions, domain_phis)
 #### `ActionIterator`
 The ActionIterator class implements a simple cyclic action scheduler and feature bundler for spatial semantic pointers (SSPs). It is designed for scenarios where multiple actions are represented as high-dimensional vectors (SSPs), and only one action is emphasized at a time while others are assigned lower salience. The class scales SSPs by action salience and bundles them into continuous representations for downstream processing (e.g., input to a basal ganglia model).
 
+#### `DataStorage`
+
 > Note: Original design at https://www.nengo.ai/nengo/examples/networks/basal-ganglia.html
 
 ## `bg_model.py`
 This module implements a biologically inspired Basal Ganglia (BG) model using Nengo.
-It provides tools for constructing Dynamic Neural Fields (DNFs), scaling and bundling Spatial Semantic Pointers (SSPs), and building cortico-striatal circuits for reinforcement learning and action selection.
+It provides tools for constructing Dynamic Neural Fields (DNFs), scaling and bundling Spatial Semantic Pointers (SSPs), and building cortico-striatal circuits for reinforcement learning and action selection. This model is inspired and is an extension of the Bartlett (2025) model: https://github.com/maddybartlett/ActionSpecificationBasalGanglia_2025/tree/main
 
 ### `DNF`
 The DNF class provides:
@@ -41,11 +43,15 @@ The `BasalGanglia` class implements a spiking neural model of the Basal Ganglia 
     # simulate 
     bg.simulate()
   ```
+
 ## Notebooks:
 1. `bg_model.ipynb`: Contains Basal Ganglia model simulation for 4 discrete action channels and continous domain space expressed over [0,4]
 2. `modified_park.ipynb`: Contains implementation of a modified version of the Park task using an Action Iterator 
 3. `park_task.ipynb` : Contains a 2-channel (left & right) channel implementation of the Park task 
 4. `park_bimodal.ipynb`: Contains a 2-channel (left & right) biomodal distribution implementation of the Park task
+5. `park_bimodal_pca.ipynb`: 
+6. `pca_session.ipynb`:
+7. `pca_analysis2.ipynb`: 
 
 ## Figures:
 Find all graphs and figures for this project under `/figures`
