@@ -616,13 +616,6 @@ class BasalGanglia(Network):
         }
 
 
-
-
-
-
-
-
-
 def main():
     # Domain 
     domain = np.arange(0, 4, 0.01).reshape(-1, 1) # Shape: (400, 1)
