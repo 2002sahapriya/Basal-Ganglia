@@ -1,8 +1,8 @@
 # Basal Ganglia
-[ Under Review: Submitting to Cognitive Science Society 2026]
-[ February 2, 2026 ]
-[ Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard ]
-[ Paper Link ]
+Status: Accepted -- Submitted to Cognitive Science Society 2026] \
+Date: February 2, 2026 \
+Authors: Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard \
+[Paper Link]
 
 ## Requirements 
 - Python == 3.10.18
