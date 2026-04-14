@@ -1,5 +1,5 @@
 # Basal Ganglia
-Status: Accepted -- Submitted to Cognitive Science Society 2026] \
+Status: Accepted -- Submitted to Cognitive Science Society 2026 \
 Date: February 2, 2026 \
 Authors: Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard \
 [Paper Link]
