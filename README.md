@@ -1,19 +1,45 @@
 # Basal Ganglia
-Status: Accepted -- Submitted to Cognitive Science Society 2026 \
-Date: February 2, 2026 \
+Status: Accepted to Cognitive Science Society 2026 \
+Title: A Computation Model of Action Selection and Action Specification for the Basal Ganglia
+Submitted Date: February 2, 2026 \
+Accepted Date: April 8, 2026
+Published Date: 
 Authors: Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard \
-[Paper Link]
+[Paper Link - TBD]
+
+## Summary
+
+This repository contains the implementation, data, and experiment scripts for a biologically inspired computational model of the basal ganglia that performs both **discrete action selection** and **continuous action specification** in a single operation.
+
+The model addresses a gap in classical basal ganglia models, which typically treat the basal ganglia as a selector over discrete action channels—e.g., choosing *which* action to perform—but do not specify *how* the selected action should be executed along continuous dimensions such as force, speed, or movement vigor. Motivated by recent evidence that motor cortex and dorsal striatum jointly encode continuous action parameters, this work extends prior basal ganglia models by representing each candidate action as an action-salience distribution over a continuous parameter space.
+
+The model uses high-dimensional Spatial Semantic Pointer/Vector Symbolic Architecture representations to encode action-salience distributions, and applies Dynamic Neural Field dynamics in the striatum to reduce entropy across the combined multi-action representation. This entropy-reduction transformation sharpens the input distribution while preserving its peak, allowing the model to identify both the winning action channel and the corresponding continuous action parameter.
+
+In simulations patterned after the reach-to-pull paradigm, the model successfully:
+- selects between multiple discrete action alternatives,
+- specifies the continuous parameter value for the selected action,
+- transforms high-entropy cortical action-salience bundles into low-entropy striatal/BG output representations,
+- and demonstrates how a single cortico–basal-ganglia–thalamo–cortical mechanism can couple “what to do” with “how much” to do it.
+
+Overall, this work proposes a mechanistic account of how the basal ganglia may jointly support action selection and action specification, extending localist channel-based models toward continuous, distributed representations of action parameters.
+
+This model extends the action specification framework proposed by Bartlett et al. (2025), which introduced a basal ganglia model using Vector Symbolic Architectures to represent continuous action spaces and Dynamic Neural Fields to sharpen action-salience distributions. While Bartlett et al. focused on specification within a single action channel, the present model generalizes this approach across multiple discrete action channels, enabling joint action selection and continuous action specification in a unified basal ganglia circuit. 
+
+Citation for Bartlett et al. (2025): Bartlett, M., Furlong, P. M., Stewart, T. C., & Orchard, J. (2025). *A Computational Model of Action Specification in the Basal Ganglia*. bioRxiv. https://doi.org/10.1101/2025.08.12.669938
+
 
 ## Requirements 
-- Python == 3.10.18
+- Python==3.10.18
 - gymnasium==1.0.0
 - matplotlib==3.10.5
 - nengo==4.1.0
 - numpy==1.26.4
 - scipy==1.16.1
 - setuptools==80.9.0
-- nengo_dft == 0.0.1 (from https://github.com/tcstewar/nengo-dft/tree/main)
-- sspspace == 0.1 (from https://github.com/ctn-waterloo/sspspace)
+- nengo_dft==0.0.1 (from https://github.com/tcstewar/nengo-dft/tree/main)
+- sspspace==0.1 (from https://github.com/ctn-waterloo/sspspace)
+
+**Note: See `requirements.txt`**
 
 ## Installation Instructions 
 
@@ -67,6 +93,20 @@ The Park Task tests BG action selection between two motor actions (Lever Pull vs
 | [`docs/park_task.md`](docs/park_task.md) | `park_bimodal.ipynb` | Extended experiment: two peaks per channel (bimodal), testing selection under distributional ambiguity. |
 
 ## Citation
+Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action Selection and Action Specification for the Basal Ganglia_. Proceedings of the 48th Annual Meeting of the Cognitive Science Society. https://doi.org/XXXXX.
+
+```bibtex
+@inproceedings{saha2026basalganglia,
+  author    = {Saha, Priyadarshini and Bartlett, Madeliene and Orchard, Jeff},
+  title     = {A Computational Model of Action Selection and Action Specification for the Basal Ganglia},
+  booktitle = {Proceedings of the 48th Annual Meeting of the Cognitive Science Society},
+  year      = {2026},
+  note      = {In press},
+  doi       = {XXXXX},
+}
+```
+
+Note: XXXX to be replaced
 
 ## LICENSE
 - GNU

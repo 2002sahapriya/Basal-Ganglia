@@ -1,5 +1,37 @@
-#### BASAL GANGLIA MODEL ####
-### WHERE WE NICKED STUFF
+### BASAL GANGLIA MODEL ####
+
+'''
+References
+----------
+Nengo / Neural Engineering Framework (NEF):
+  Bekolay, T., Bergstra, J., Hunsberger, E., DeWolf, T., Stewart, T. C.,
+  Rasmussen, D., Choo, X., Voelker, A. R., & Eliasmith, C. (2014).
+  Nengo: a Python tool for building large-scale functional brain models.
+  Frontiers in Neuroinformatics, 7:48. https://doi.org/10.3389/fninf.2013.00048
+
+  Eliasmith, C., & Anderson, C. H. (2003). Neural Engineering: Computation,
+  Representation, and Dynamics in Neurobiological Systems. MIT Press.
+
+nengo_dft (Dynamic Field Theory extension for Nengo):
+  https://github.com/nengo/nengo-dft
+
+Dynamic Neural Fields (DNF) / Dynamic Field Theory (DFT):
+  Amari, S. (1977). Dynamics of pattern formation in lateral-inhibition type
+  neural fields. Biological Cybernetics, 27(2), 77-87.
+  https://doi.org/10.1007/BF00337259
+
+  Schöner, G., Spencer, J. P., & the DFT Research Group (2016). Dynamic
+  Thinking: A Primer on Dynamic Field Theory. Oxford University Press.
+
+  Erlhagen, W., & Schöner, G. (2002). Dynamic field theory of movement
+  preparation. Psychological Review, 109(3), 545-572.
+  https://doi.org/10.1037/0033-295X.109.3.545
+
+Basal Ganglia model this work adapts/extends:
+  Bartlett, M., Furlong, P. M., Stewart, T. C., & Orchard, J. (2025).
+  A Computational Model of Action Specification in the Basal Ganglia.
+  bioRxiv. https://doi.org/10.1101/2025.08.12.669938
+'''
 
 import numpy as np
 import pandas as pd
@@ -28,7 +60,27 @@ class DNF:
     Provides methods to construct neural field kernels and corresponding Nengo
     networks for simulating localized excitatory and inhibitory dynamics.
 
-    References/Citations: TODO
+    References
+    ----------
+    Foundational DNF / neural field theory:
+        Amari, S. (1977). Dynamics of pattern formation in lateral-inhibition
+        type neural fields. Biological Cybernetics, 27(2), 77-87.
+        https://doi.org/10.1007/BF00337259
+
+    Dynamic Field Theory (modern treatment, action selection / decision-making):
+        Schöner, G., Spencer, J. P., & the DFT Research Group (2016).
+        Dynamic Thinking: A Primer on Dynamic Field Theory. Oxford Univ. Press.
+
+        Erlhagen, W., & Schöner, G. (2002). Dynamic field theory of movement
+        preparation. Psychological Review, 109(3), 545-572.
+
+    Nengo implementation of DFT (the `nengo_dft` package used here):
+        https://github.com/nengo/nengo-dft
+
+    Underlying Nengo / NEF framework:
+        Bekolay, T. et al. (2014). Nengo: a Python tool for building large-scale
+        functional brain models. Frontiers in Neuroinformatics, 7:48.
+        https://doi.org/10.3389/fninf.2013.00048
     """
     @staticmethod
     def make_kernel(shape, exc, inh, exc_width=5, inh_width=10, epsilon=0.001):
@@ -195,6 +247,11 @@ class BasalGanglia(Network):
         stn, gpe, gpi : list[Ensemble]
             Subthalamic nucleus (STN), external globus pallidus (GPe),
             and internal globus pallidus (GPi) ensembles per action channel.
+
+    This model adapats and extends the work of Bartlett et. al: 
+    Bartlett, M., Furlong, P. M., Stewart, T. C., & Orchard, J. (2025). 
+    *A Computational Model of Action Specification in the Basal Ganglia*. 
+    bioRxiv. https://doi.org/10.1101/2025.08.12.669938
     """
 
     def __init__(self, n_actions: int, dnf_parameters: dict,
