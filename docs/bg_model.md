@@ -116,18 +116,7 @@ BasalGanglia(
 | `bg_out` | `Node` | Output node collecting GPi projections, size `n_actions × ssp_dim`. |
 
 **Circuit connectivity**
-
-```
-cortex_inputs[i] ──┐
-                   ├──► concentration_layer ──► D1 DNF ──► GPi[i] ──► bg_out
-dopamine ──────────┘                       └──► D2 DNF ──► GPe[i] ──┐
-                                                                      │
-cortex_inputs[i] ─────────────────────────────► STN[i] ──────────────┤
-                                                   │                  │
-                                               GPe[i] ◄──────────────┘
-                                                   │
-                                               GPi[i] ──► bg_out
-```
+![BG Network](figures/bg_network.png "Figure 1: Basal Ganglia Network Architecture")
 
 Connection signs: D1→GPi (−), D2→GPe (−), STN→GPi (+), STN→GPe (+), GPe→STN (−), GPe→GPi (−), GPi→output (−3×).
 
