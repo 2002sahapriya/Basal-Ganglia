@@ -1,9 +1,9 @@
 # Basal Ganglia
 Status: Accepted to Cognitive Science Society 2026 \
-Title: A Computation Model of Action Selection and Action Specification for the Basal Ganglia
+Title: A Computation Model of Action Selection and Action Specification for the Basal Ganglia \
 Submitted Date: February 2, 2026 \
-Accepted Date: April 8, 2026
-Published Date: 
+Accepted Date: April 8, 2026 \
+Published Date: In Press. \
 Authors: Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard \
 [Paper Link - TBD]
 
