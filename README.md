@@ -106,7 +106,7 @@ The Park Task tests BG action selection between two motor actions (Lever Pull vs
 | [`docs/park_task.md`](docs/park_task.md) | `park_bimodal.ipynb` | Extended experiment: two peaks per channel (bimodal), testing selection under distributional ambiguity. |
 
 ## Citation
-Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action Selection and Action Specification for the Basal Ganglia_. Proceedings of the 48th Annual Meeting of the Cognitive Science Society. https://escholarship.org/uc/item/2ct43100.
+Saha, P., Bartlett, M., Orchard, J., . _A Computational Model of Action Selection and Action Specification for the Basal Ganglia_. Proceedings of the 48th Annual Meeting of the Cognitive Science Society. https://escholarship.org/uc/item/2ct43100.
 
 ```bibtex
 @inproceedings{saha2026basalganglia,
@@ -117,8 +117,6 @@ Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action
   doi       = {[https://escholarship.org/uc/item/2ct43100](https://escholarship.org/uc/item/2ct43100)},
 }
 ```
-
-Note: XXXX to be replaced
 
 ## LICENSE
 - GNU
