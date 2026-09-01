@@ -1,11 +1,24 @@
 # Basal Ganglia
+
+[A Computational Model of the Action Selection and Action Specification in the Basal Ganglia](https://escholarship.org/uc/item/2ct43100)
+
 Status: Accepted to Cognitive Science Society 2026 \
 Title: A Computation Model of Action Selection and Action Specification for the Basal Ganglia \
 Submitted Date: February 2, 2026 \
 Accepted Date: April 8, 2026 \
-Published Date: In Press. \
-Authors: Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard \
-[Paper Link - TBD]
+Published Date: 
+Authors: **Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard**
+
+
+Presented as a Flash Talk in the  **Anuual Conference of the Cognitive Science Society 2026**
+
+## Poster
+Presented poster at **CogSci 2026** \
+[Poster Available Here](./[Poster]%20Basal%20ganglia.pdf])
+
+
+## Presentation Youtube Tutorial
+Youtube Presentation Link: https://www.youtube.com/watch?v=7iUBRigqla4&t=5s&pp=0gcJCRoMAYcqIYzv
 
 ## Summary
 
@@ -93,7 +106,7 @@ The Park Task tests BG action selection between two motor actions (Lever Pull vs
 | [`docs/park_task.md`](docs/park_task.md) | `park_bimodal.ipynb` | Extended experiment: two peaks per channel (bimodal), testing selection under distributional ambiguity. |
 
 ## Citation
-Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action Selection and Action Specification for the Basal Ganglia_. Proceedings of the 48th Annual Meeting of the Cognitive Science Society. https://doi.org/XXXXX.
+Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action Selection and Action Specification for the Basal Ganglia_. Proceedings of the 48th Annual Meeting of the Cognitive Science Society. https://escholarship.org/uc/item/2ct43100.
 
 ```bibtex
 @inproceedings{saha2026basalganglia,
@@ -101,8 +114,7 @@ Saha, P., Bartlett, M., Orchard, J. (in press). _A Computational Model of Action
   title     = {A Computational Model of Action Selection and Action Specification for the Basal Ganglia},
   booktitle = {Proceedings of the 48th Annual Meeting of the Cognitive Science Society},
   year      = {2026},
-  note      = {In press},
-  doi       = {XXXXX},
+  doi       = {[https://escholarship.org/uc/item/2ct43100](https://escholarship.org/uc/item/2ct43100)},
 }
 ```
 
