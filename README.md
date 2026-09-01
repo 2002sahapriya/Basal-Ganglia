@@ -10,7 +10,7 @@ Published Date:
 Authors: **Priyadarshini Saha, Madeliene Bartlett, Jeff Orchard**
 
 
-Accepted as a Poster with the full paper publication in the  **Anuual Conference of the Cognitive Science Society 2026**
+Accepted as a **Poster with the full paper publication** in the  **Anuual Conference of the Cognitive Science Society 2026** 
 
 ## Poster
 Presented poster at **CogSci 2026** \
@@ -18,6 +18,7 @@ Presented poster at **CogSci 2026** \
 
 
 ## Presentation Youtube Tutorial
+Presented as a _flash talk_ at the **Anuunal Conference of the Coginitve Science Society**
 Youtube Presentation Link: https://www.youtube.com/watch?v=7iUBRigqla4&t=5s&pp=0gcJCRoMAYcqIYzv
 
 ## Summary
